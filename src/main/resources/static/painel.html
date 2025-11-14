@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Logística</title>
+  
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/759/759739.png" type="image/png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    const API_URL = "http://localhost:8080/api";
+
+    function formatarDataHora(dataISO) {
+        if (!dataISO) return "-";
+        const data = new Date(dataISO);
+        return data.toLocaleString('pt-BR', { 
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+    }
+
+    async function carregarDados() {
+      const nome = sessionStorage.getItem("nome");
+      const role = sessionStorage.getItem("role");
+      const email = sessionStorage.getItem("email");
+
+      if (!email) {
+        alert("Sessão expirada.");
+        window.location.href = "index.html";
+        return;
+      }
+
+      document.getElementById("userName").textContent = nome;
+      document.getElementById("userRole").textContent = role === "ROLE_ADMIN" ? "Administrador" : "Operador";
+
+      if (role === "ROLE_ADMIN") {
+          carregarLogs();
+      } else {
+          document.getElementById("logsSection").style.display = "none";
+      }
+      carregarPedidos();
+
+      // Atualização em tempo real (5 segundos)
+      setInterval(() => {
+          carregarPedidos();
+          if (role === "ROLE_ADMIN") carregarLogs();
+      }, 5000);
+    }
+
+    async function carregarPedidos() {
+      try {
+        const res = await fetch(`${API_URL}/pedidos`);
+        const pedidos = await res.json();
+        
+        // --- CÁLCULO DOS CARDS (NOVO) ---
+        const total = pedidos.length;
+        const entregues = pedidos.filter(p => p.status === "ENTREGUE").length;
+        const pendentes = pedidos.filter(p => p.status === "PENDENTE").length;
+
+        // Atualiza os números na tela
+        document.getElementById("cardTotal").textContent = total;
+        document.getElementById("cardEntregues").textContent = entregues;
+        document.getElementById("cardPendentes").textContent = pendentes;
+        // --------------------------------
+
+        const tabela = document.getElementById("tabelaPedidos");
+        tabela.innerHTML = "";
+
+        pedidos.forEach(p => {
+          const row = document.createElement("tr");
+          row.className = "border-b hover:bg-gray-50 transition";
+          
+          let statusClass = p.status === "ENTREGUE" 
+            ? "bg-green-100 text-green-700 border-green-200" 
+            : "bg-yellow-100 text-yellow-700 border-yellow-200";
+          
+          let iconStatus = p.status === "ENTREGUE" ? "fa-check-circle" : "fa-clock";
+
+          let btnAcao = "";
+          if(p.status === "PENDENTE") {
+              btnAcao = `<button onclick="mudarStatus(${p.id})" class="text-blue-500 hover:text-blue-700 mx-2" title="Entregar">
+                            <i class="fa-solid fa-truck-fast fa-lg"></i>
+                         </button>`;
+          }
+
+          row.innerHTML = `
+            <td class="p-4 font-mono text-blue-600 font-bold text-sm">
+                <i class="fa-solid fa-barcode mr-2 text-gray-400"></i>${p.codigoRastreio || "..."}
+            </td>
+            <td class="p-4 font-medium text-gray-700">${p.nomeCliente}</td>
+            <td class="p-4">
+                <span class="${statusClass} px-3 py-1 rounded-full text-xs font-bold border flex items-center w-fit gap-2">
+                    <i class="fa-solid ${iconStatus}"></i> ${p.status}
+                </span>
+            </td>
+            <td class="p-4 text-gray-500 text-sm font-mono">
+                <i class="fa-regular fa-clock mr-1"></i> ${formatarDataHora(p.dataPedido)}
+            </td>
+            <td class="p-4 text-center">
+                ${btnAcao}
+                <button onclick="excluirPedido(${p.id})" class="text-red-400 hover:text-red-600 mx-2" title="Excluir">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+          `;
+          tabela.appendChild(row);
+        });
+      } catch (e) { console.error(e); }
+    }
+
+    async function criarPedido() {
+        const input = document.getElementById("novoCliente");
+        if(!input.value) return alert("Digite o nome do cliente!");
+        
+        await fetch(`${API_URL}/pedidos`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ nomeCliente: input.value })
+        });
+        input.value = "";
+        carregarPedidos();
+        if (sessionStorage.getItem("role") === "ROLE_ADMIN") carregarLogs();
+    }
+
+    async function mudarStatus(id) {
+        if(!confirm("Confirmar entrega?")) return;
+        await fetch(`${API_URL}/pedidos/${id}/entregar`, { method: "PUT" });
+        carregarPedidos();
+    }
+
+    async function excluirPedido(id) {
+        if(!confirm("Excluir pedido?")) return;
+        await fetch(`${API_URL}/pedidos/${id}`, { method: "DELETE" });
+        carregarPedidos();
+    }
+
+    async function carregarLogs() {
+        const res = await fetch(`${API_URL}/logs`);
+        if(res.ok) {
+            const logs = await res.json();
+            const tabela = document.getElementById("tabelaLogs");
+            tabela.innerHTML = "";
+            logs.forEach(l => {
+                const row = document.createElement("tr");
+                row.className = "border-b text-sm text-gray-600 hover:bg-gray-50";
+                row.innerHTML = `
+                    <td class="p-3">${l.id}</td>
+                    <td class="p-3"><span class="bg-gray-200 px-2 py-0.5 rounded text-xs font-bold">SISTEMA</span></td>
+                    <td class="p-3">${l.acao}</td>
+                    <td class="p-3 text-xs font-mono">${formatarDataHora(l.dataLog)}</td>
+                `;
+                tabela.appendChild(row);
+            });
+        }
+    }
+
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+</head>
+
+<body onload="carregarDados()" class="bg-slate-100 min-h-screen font-sans">
+  <nav class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+    <div class="flex items-center gap-3">
+        <div class="bg-blue-600 p-2 rounded-lg text-white">
+            <i class="fa-solid fa-box-open fa-lg"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-bold text-gray-800">Logística Pro</h1>
+            <p class="text-xs text-gray-500 flex items-center gap-1">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Sistema Online
+            </p>
+        </div>
+    </div>
+    <div class="flex items-center gap-6">
+      <div class="text-right hidden md:block">
+          <p id="userName" class="text-sm font-bold text-gray-800"></p>
+          <p id="userRole" class="text-xs text-blue-600 font-medium bg-blue-50 px-2 rounded-full"></p>
+      </div>
+      <button onclick="logout()" class="text-gray-400 hover:text-red-500 transition">
+          <i class="fa-solid fa-right-from-bracket fa-xl"></i>
+      </button>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto p-8">
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500 flex items-center justify-between transform hover:scale-105 transition duration-300">
+            <div>
+                <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Total de Pedidos</p>
+                <h3 class="text-3xl font-bold text-gray-800 mt-1" id="cardTotal">0</h3>
+            </div>
+            <div class="bg-blue-100 p-4 rounded-full text-blue-600">
+                <i class="fa-solid fa-clipboard-list fa-xl"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500 flex items-center justify-between transform hover:scale-105 transition duration-300">
+            <div>
+                <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Entregues</p>
+                <h3 class="text-3xl font-bold text-gray-800 mt-1" id="cardEntregues">0</h3>
+            </div>
+            <div class="bg-green-100 p-4 rounded-full text-green-600">
+                <i class="fa-solid fa-check-double fa-xl"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-yellow-500 flex items-center justify-between transform hover:scale-105 transition duration-300">
+            <div>
+                <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Pendentes</p>
+                <h3 class="text-3xl font-bold text-gray-800 mt-1" id="cardPendentes">0</h3>
+            </div>
+            <div class="bg-yellow-100 p-4 rounded-full text-yellow-600">
+                <i class="fa-solid fa-hourglass-half fa-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-8 flex gap-4 items-center border border-gray-100">
+        <div class="bg-blue-50 p-3 rounded-full text-blue-600"><i class="fa-solid fa-plus"></i></div>
+        <input type="text" id="novoCliente" placeholder="Nome do Cliente..." 
+               class="flex-1 border-b-2 border-gray-200 px-4 py-2 focus:outline-none focus:border-blue-500 transition bg-transparent text-lg">
+        <button onclick="criarPedido()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold transition shadow-md hover:shadow-lg flex items-center gap-2">
+            <span>Criar Pedido</span> <i class="fa-solid fa-arrow-right"></i>
+        </button>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+      <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+          <h2 class="text-lg font-bold text-gray-700"><i class="fa-solid fa-list mr-2"></i> Pedidos Recentes</h2>
+          <span class="text-xs text-gray-400 uppercase font-bold bg-gray-100 px-2 py-1 rounded">Atualização em Tempo Real</span>
+      </div>
+      <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead class="text-gray-500 uppercase text-xs bg-gray-50">
+              <tr>
+                <th class="p-4">Rastreio</th>
+                <th class="p-4">Cliente</th>
+                <th class="p-4">Status</th>
+                <th class="p-4">Data e Hora</th>
+                <th class="p-4 text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaPedidos"></tbody>
+          </table>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" id="logsSection">
+      <div class="px-6 py-4 border-b border-gray-100 bg-slate-800 text-white flex justify-between items-center">
+          <h2 class="text-lg font-bold"><i class="fa-solid fa-shield-halved mr-2"></i> Auditoria & Segurança</h2>
+          <span class="bg-slate-700 px-3 py-1 rounded text-xs">Acesso Restrito</span>
+      </div>
+      <div class="max-h-64 overflow-y-auto bg-slate-50">
+          <table class="w-full text-left">
+            <thead class="text-gray-500 uppercase text-xs border-b">
+              <tr>
+                <th class="p-3">ID</th>
+                <th class="p-3">Origem</th>
+                <th class="p-3">Ação</th>
+                <th class="p-3">Data e Hora</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaLogs"></tbody>
+          </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

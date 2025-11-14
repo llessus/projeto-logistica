@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rastrear Encomenda</title>
+    
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/759/759739.png" type="image/png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col items-center justify-center">
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-4 border-blue-600">
+        <div class="text-center mb-6">
+            <span class="text-5xl">🚚</span>
+            <h1 class="text-2xl font-bold text-gray-800 mt-4">Rastreamento</h1>
+            <p class="text-gray-500 text-sm">Digite seu código (Ex: LOG-2025...)</p>
+        </div>
+
+        <div class="flex gap-2 mb-6">
+            <input type="text" id="codigoInput" placeholder="CÓDIGO AQUI" 
+                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 uppercase font-bold text-gray-700">
+            <button onclick="buscarEncomenda()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-bold transition shadow-md">
+                Ver
+            </button>
+        </div>
+
+        <div id="resultado" class="hidden border-t pt-6">
+            <div class="flex justify-between items-center mb-4 bg-gray-50 p-3 rounded-lg">
+                <span class="text-gray-500 text-sm font-medium">Status:</span>
+                <span id="statusBadge" class="px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase"></span>
+            </div>
+            
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Cliente:</span>
+                    <span id="resCliente" class="font-bold text-gray-800"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Data do Pedido:</span>
+                    <span id="resData" class="font-medium text-gray-800"></span>
+                </div>
+            </div>
+        </div>
+
+        <div id="msgErro" class="hidden mt-4 p-3 bg-red-100 text-red-700 text-center rounded-lg text-sm font-medium"></div>
+        
+        <div class="text-center mt-8">
+            <a href="index.html" class="text-xs text-gray-400 hover:text-blue-600 transition">Sou funcionário (Acesso Restrito)</a>
+        </div>
+    </div>
+
+    <script>
+        async function buscarEncomenda() {
+            const codigo = document.getElementById("codigoInput").value.trim();
+            const divResultado = document.getElementById("resultado");
+            const msgErro = document.getElementById("msgErro");
+
+            divResultado.classList.add("hidden");
+            msgErro.classList.add("hidden");
+
+            if (!codigo) return;
+
+            try {
+                const response = await fetch(`http://localhost:8080/api/pedidos/rastreio/${codigo}`);
+                if (!response.ok) throw new Error("Encomenda não encontrada.");
+                const pedido = await response.json();
+
+                document.getElementById("resCliente").textContent = pedido.nomeCliente;
+                document.getElementById("resData").textContent = pedido.dataPedido;
+
+                const badge = document.getElementById("statusBadge");
+                badge.textContent = pedido.status;
+                
+                if (pedido.status === "ENTREGUE") {
+                    badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200";
+                } else {
+                    badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200";
+                }
+                divResultado.classList.remove("hidden");
+            } catch (error) {
+                msgErro.textContent = "❌ " + error.message;
+                msgErro.classList.remove("hidden");
+            }
+        }
+    </script>
+</body>
+</html>

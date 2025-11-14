@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema Logística</title>
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/759/759739.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .background-image {
+            background-image: url('Fundologistica.jpg'); 
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.5); 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 h-screen flex items-center justify-center font-sans relative overflow-hidden">
+
+    <div class="background-image"></div>
+    
+    <div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-100 relative z-10">
+        <div class="text-center mb-8">
+            <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                <i class="fa-solid fa-truck-fast fa-2xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-800">Acesso ao Sistema</h1>
+            <p class="text-slate-500 text-sm mt-1">Entre com suas credenciais</p>
+        </div>
+
+        <form onsubmit="fazerLogin(event)" class="space-y-5">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1 ml-1">Email Corporativo</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-envelope text-gray-400"></i>
+                    </div>
+                    <input type="email" id="email" placeholder="nome@empresa.com" required 
+                           class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1 ml-1">Senha</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-lock text-gray-400"></i>
+                    </div>
+                    <input type="password" id="senha" placeholder="••••••••" required 
+                           class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm">
+                    <button type="button" onclick="alternarSenha()" 
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600 cursor-pointer">
+                        <i class="fa-solid fa-eye" id="iconOlho"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" 
+                    class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transform hover:scale-[1.02] transition shadow-lg shadow-blue-200 flex justify-center items-center gap-2">
+                <span>Entrar</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="mt-8 pt-6 border-t border-gray-100 text-center">
+            <a href="rastreio.html" class="group flex flex-col items-center gap-1 text-gray-500 hover:text-blue-600 transition">
+                <span class="text-xs font-medium">Não é funcionário?</span>
+                <span class="text-sm font-bold group-hover:underline">Rastrear minha Encomenda</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function alternarSenha() {
+            const inputSenha = document.getElementById('senha');
+            const icon = document.getElementById('iconOlho');
+            if (inputSenha.type === 'password') {
+                inputSenha.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                inputSenha.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        async function fazerLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById("email").value;
+            const senha = document.getElementById("senha").value;
+            const btn = event.target.querySelector('button[type="submit"]');
+
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Validando...';
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+
+            try {
+                const response = await fetch("http://localhost:8080/api/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    sessionStorage.setItem("email", data.email);
+                    sessionStorage.setItem("nome", data.nome);
+                    sessionStorage.setItem("role", data.role);
+                    
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Sucesso!';
+                    btn.classList.replace('bg-blue-600', 'bg-green-500');
+                    setTimeout(() => { window.location.href = "painel.html"; }, 800);
+                } else {
+                    alert("Email ou senha incorretos!");
+                    btn.innerHTML = textoOriginal;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                }
+            } catch (error) {
+                alert("Erro de conexão.");
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
+        }
+    </script>
+</body>
+</html>
