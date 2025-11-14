@@ -7,7 +7,9 @@
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/759/759739.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
+        /* Sua Imagem de Fundo */
         .background-image {
             background-image: url('Fundologistica.jpg'); 
             background-size: cover;
@@ -20,13 +22,48 @@
             height: 100%;
             z-index: -1;
         }
+
+        /* Regras do Modo Escuro */
+        body.dark { /* O fundo já é escuro */ }
+        body.dark .bg-white { background-color: #1f2937; border-color: #374151; }
+        body.dark .text-slate-800, body.dark .text-gray-800 { color: #f3f4f6; }
+        body.dark .text-slate-500, body.dark .text-gray-500 { color: #9ca3af; }
+        body.dark input { background-color: #374151 !important; color: white; border-color: #4b5563; }
+        body.dark .border-gray-100 { border-color: #374151; }
+        
+        /* --- NOVO: Animações do Toast --- */
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100%); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideOutRight {
+            to { opacity: 0; transform: translateX(100%); }
+        }
+        .toast-in { animation: slideInRight 0.4s ease-out forwards; }
+        .toast-out { animation: slideOutRight 0.4s ease-in forwards; }
+        /* ----------------------------- */
     </style>
+
+    <script>
+      (function() {
+          if (localStorage.theme === 'dark') {
+              document.documentElement.classList.add('dark');
+              document.body.classList.add('dark');
+          } else {
+              document.documentElement.classList.remove('dark');
+              document.body.classList.remove('dark');
+          }
+      })();
+    </script>
 </head>
 <body class="bg-slate-100 h-screen flex items-center justify-center font-sans relative overflow-hidden">
 
     <div class="background-image"></div>
     
+    <div id="toast-container" class="fixed top-5 right-5 z-50 space-y-3">
+        </div>
     <div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-100 relative z-10">
+        
         <div class="text-center mb-8">
             <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
                 <i class="fa-solid fa-truck-fast fa-2xl"></i>
@@ -36,6 +73,7 @@
         </div>
 
         <form onsubmit="fazerLogin(event)" class="space-y-5">
+            
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1 ml-1">Email Corporativo</label>
                 <div class="relative">
@@ -55,6 +93,7 @@
                     </div>
                     <input type="password" id="senha" placeholder="••••••••" required 
                            class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm">
+                    
                     <button type="button" onclick="alternarSenha()" 
                             class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600 cursor-pointer">
                         <i class="fa-solid fa-eye" id="iconOlho"></i>
@@ -77,6 +116,27 @@
     </div>
 
     <script>
+        // --- NOVO: Função que cria as notificações ---
+        function showToast(message, type = 'error') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            let bgColor = (type === 'error') ? 'bg-red-600' : 'bg-blue-600';
+            let icon = (type === 'error') ? '<i class="fa-solid fa-exclamation-triangle mr-3"></i>' : '<i class="fa-solid fa-info-circle mr-3"></i>';
+
+            toast.className = `flex items-center p-4 rounded-lg shadow-xl text-white ${bgColor} toast-in max-w-sm`;
+            toast.innerHTML = `${icon}<span class="font-medium">${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('toast-in');
+                toast.classList.add('toast-out');
+                setTimeout(() => { toast.remove(); }, 400);
+            }, 3000); // 3 segundos
+        }
+        // ------------------------------------------
+
         function alternarSenha() {
             const inputSenha = document.getElementById('senha');
             const icon = document.getElementById('iconOlho');
@@ -89,6 +149,7 @@
             }
         }
 
+        // --- Função de Login (Modificada para usar Toasts) ---
         async function fazerLogin(event) {
             event.preventDefault();
             const email = document.getElementById("email").value;
@@ -98,7 +159,6 @@
             const textoOriginal = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Validando...';
             btn.disabled = true;
-            btn.classList.add('opacity-75', 'cursor-not-allowed');
 
             try {
                 const response = await fetch("http://localhost:8080/api/auth/login", {
@@ -117,16 +177,16 @@
                     btn.classList.replace('bg-blue-600', 'bg-green-500');
                     setTimeout(() => { window.location.href = "painel.html"; }, 800);
                 } else {
-                    alert("Email ou senha incorretos!");
+                    // --- MUDANÇA AQUI ---
+                    showToast("Email ou senha incorretos!", "error");
                     btn.innerHTML = textoOriginal;
                     btn.disabled = false;
-                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
                 }
             } catch (error) {
-                alert("Erro de conexão.");
+                // --- MUDANÇA AQUI ---
+                showToast("Erro de conexão com o servidor.", "error");
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
-                btn.classList.remove('opacity-75', 'cursor-not-allowed');
             }
         }
     </script>

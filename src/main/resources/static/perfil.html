@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meu Perfil - Logística Pro</title>
+    
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/759/759739.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body.dark { background-color: #111827; color: #d1d5db; }
+        body.dark .bg-white { background-color: #1f2937; border-color: #374151; }
+        body.dark .text-gray-800, body.dark .text-gray-700 { color: #f3f4f6; }
+        body.dark .text-gray-500 { color: #9ca3af; }
+        body.dark .bg-gray-50 { background-color: #374151; }
+        body.dark .border-b, body.dark .border-gray-200, body.dark .border-gray-100, body.dark .border-t { border-color: #374151; }
+    </style>
+
+    <script>
+        (function() {
+            if (localStorage.theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.body.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.body.classList.remove('dark');
+            }
+        })();
+    </script>
+
+    <style>
+        @keyframes fadeInPage {
+            from { opacity: 0; transform: translateY(15px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        body {
+            animation: fadeInPage 0.5s ease-out forwards;
+        }
+    </style>
+    
+    <script>
+        function carregarPerfil() {
+            const nome = sessionStorage.getItem("nome");
+            const role = sessionStorage.getItem("role");
+            const email = sessionStorage.getItem("email");
+
+            if (!email) { window.location.href = "index.html"; return; }
+
+            document.getElementById("profileNome").textContent = nome;
+            document.getElementById("profileEmail").textContent = email;
+
+            if (role === "ROLE_ADMIN") {
+                document.getElementById("profileRole").textContent = "Administrador do Sistema";
+                document.getElementById("roleIcon").className = "fa-solid fa-user-shield text-red-500";
+            } else {
+                document.getElementById("profileRole").textContent = "Operador de Logística";
+                document.getElementById("roleIcon").className = "fa-solid fa-truck text-blue-500";
+            }
+
+            // Seta o ícone de tema (Sol ou Lua)
+            const icon = document.getElementById('theme-icon');
+            if (localStorage.theme === 'dark') {
+                icon.classList.replace('fa-sun', 'fa-moon');
+            } else {
+                icon.classList.replace('fa-moon', 'fa-sun');
+            }
+        }
+
+        // Função de trocar o tema
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            document.documentElement.classList.toggle('dark');
+            
+            const isDark = document.body.classList.contains('dark');
+            localStorage.theme = isDark ? 'dark' : 'light';
+            
+            const icon = document.getElementById('theme-icon');
+            if (isDark) {
+                icon.classList.replace('fa-sun', 'fa-moon');
+            } else {
+                icon.classList.replace('fa-moon', 'fa-sun');
+            }
+        }
+    </script>
+</head>
+
+<body onload="carregarPerfil()" class="bg-slate-100 min-h-screen font-sans">
+    
+    <nav class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center gap-3">
+            <a href="painel.html" class="text-gray-400 hover:text-blue-600 p-2 rounded-full hover:bg-gray-100" title="Voltar ao Painel">
+                 <i class="fa-solid fa-arrow-left fa-lg"></i>
+            </a>
+            <div class="border-l h-8 border-gray-200 mx-2"></div>
+            <div>
+                <h1 class="text-xl font-bold text-gray-800">Meu Perfil</h1>
+                <p class="text-xs text-gray-500">Suas informações de acesso</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <button onclick="toggleTheme()" class="text-gray-400 hover:text-blue-600 transition" title="Mudar tema">
+                <i class="fa-solid fa-sun fa-xl" id="theme-icon"></i>
+            </button>
+            <button onclick="sessionStorage.clear(); window.location.href='index.html'" class="text-gray-400 hover:text-red-500 transition" title="Sair">
+                <i class="fa-solid fa-right-from-bracket fa-xl"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="max-w-xl mx-auto p-8 mt-10">
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+            
+            <div class="bg-gray-50 p-8 border-b flex flex-col items-center gap-4">
+                <div class="w-24 h-24 rounded-full bg-blue-600 text-white flex items-center justify-center border-4 border-white shadow-md">
+                    <i class="fa-solid fa-user fa-3x"></i>
+                </div>
+                <h2 id="profileNome" class="text-2xl font-bold text-gray-800"></h2>
+            </div>
+            
+            <div class="p-8 space-y-6">
+                <div>
+                    <label class="text-sm font-bold text-gray-500 uppercase">Endereço de Email</label>
+                    <p id="profileEmail" class="text-lg text-gray-700 font-medium mt-1"></p>
+                </div>
+                
+                <div>
+                    <label class="text-sm font-bold text-gray-500 uppercase">Nível de Acesso</label>
+                    <div class="flex items-center gap-2 mt-2">
+                        <i id="roleIcon"></i>
+                        <p id="profileRole" class="text-lg text-gray-700 font-medium"></p>
+                    </div>
+                </div>
+                
+                <div class="border-t pt-6">
+                    <a href="#" class="text-sm text-gray-400 hover:text-red-500 transition" onclick="alert('Funcionalidade de alterar senha ainda não implementada.')">
+                        Alterar minha senha
+                    </a>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</body>
+</html>

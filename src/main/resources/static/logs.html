@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auditoria - Logística Pro</title>
+  
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/759/759739.png" type="image/png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+      body.dark { background-color: #111827; color: #d1d5db; }
+      body.dark .bg-white { background-color: #1f2937; border-color: #374151; }
+      body.dark .text-gray-800, body.dark .text-gray-700, body.dark .text-slate-800 { color: #f3f4f6; }
+      body.dark .text-gray-500, body.dark .text-slate-500 { color: #9ca3af; }
+      body.dark .bg-gray-50, body.dark .bg-slate-50, body.dark .bg-transparent { background-color: #374151; color: #f3f4f6; }
+      body.dark .border-b, body.dark .border-gray-200, body.dark .border-gray-100 { border-color: #374151; }
+      body.dark .bg-slate-800 { background-color: #0f172a; } 
+  </style>
+
+  <script>
+      (function() {
+          if (localStorage.theme === 'dark') {
+              document.documentElement.classList.add('dark');
+              document.body.classList.add('dark');
+          } else {
+              document.documentElement.classList.remove('dark');
+              document.body.classList.remove('dark');
+          }
+      })();
+  </script>
+
+  <style>
+      @keyframes fadeInPage {
+          from { opacity: 0; transform: translateY(15px); }
+          to   { opacity: 1; transform: translateY(0); }
+      }
+      body {
+          animation: fadeInPage 0.5s ease-out forwards;
+      }
+  </style>
+
+  <script>
+    // --- GUARDA DE SEGURANÇA ---
+    const userRole = sessionStorage.getItem("role");
+    if (userRole !== "ROLE_ADMIN") {
+        alert("Acesso Negado. Você não tem permissão para acessar esta página.");
+        window.location.href = "index.html";
+    }
+    // ---------------------------
+
+    const API_URL = "http://localhost:8080/api";
+
+    function formatarDataHora(dataISO) {
+        if (!dataISO) return "-";
+        const data = new Date(dataISO);
+        return data.toLocaleString('pt-BR', { 
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+    }
+
+    // Função que roda ao carregar a página
+    async function carregarPagina() {
+      const nome = sessionStorage.getItem("nome");
+      document.getElementById("userName").textContent = nome;
+      document.getElementById("userRole").textContent = "Administrador";
+      
+      // Seta o ícone de tema (Sol ou Lua)
+      const icon = document.getElementById('theme-icon');
+      if (localStorage.theme === 'dark') {
+          icon.classList.replace('fa-sun', 'fa-moon');
+      } else {
+          icon.classList.replace('fa-moon', 'fa-sun');
+      }
+
+      carregarLogs(); // Carrega os logs
+      setInterval(carregarLogs, 5000); 
+    }
+
+    // Função específica para carregar os logs
+    async function carregarLogs() {
+        try {
+            const res = await fetch(`${API_URL}/logs`);
+            if(res.ok) {
+                const logs = await res.json();
+                const tabela = document.getElementById("tabelaLogs");
+                tabela.innerHTML = ""; // Limpa para atualizar
+
+                document.getElementById("logCount").textContent = logs.length; // Atualiza o contador
+
+                logs.forEach(l => {
+                    const row = document.createElement("tr");
+                    row.className = "border-b text-sm text-gray-600 hover:bg-gray-50";
+                    row.innerHTML = `
+                        <td class="p-3">${l.id}</td>
+                        <td class="p-3"><span class="bg-gray-200 px-2 py-0.5 rounded text-xs font-bold">SISTEMA</span></td>
+                        <td class="p-3">${l.acao}</td>
+                        <td class="p-3 text-xs font-mono">${formatarDataHora(l.dataLog)}</td>
+                    `;
+                    tabela.appendChild(row);
+                });
+            }
+        } catch (e) {
+            console.error("Erro ao carregar logs", e);
+        }
+    }
+
+    // Função de trocar o tema
+    function toggleTheme() {
+        document.body.classList.toggle('dark');
+        document.documentElement.classList.toggle('dark');
+        
+        const isDark = document.body.classList.contains('dark');
+        localStorage.theme = isDark ? 'dark' : 'light';
+        
+        const icon = document.getElementById('theme-icon');
+        if (isDark) {
+            icon.classList.replace('fa-sun', 'fa-moon');
+        } else {
+            icon.classList.replace('fa-moon', 'fa-sun');
+        }
+    }
+
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+</head>
+
+<body onload="carregarPagina()" class="bg-slate-100 min-h-screen font-sans">
+  
+  <nav class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+    <div class="flex items-center gap-3">
+        <a href="painel.html" class="text-gray-400 hover:text-blue-600" title="Voltar ao Painel">
+             <i class="fa-solid fa-arrow-left fa-lg"></i>
+        </a>
+        <div class="border-l h-8 border-gray-200 mx-2"></div>
+        <div class="bg-slate-800 p-2 rounded-lg text-white">
+            <i class="fa-solid fa-shield-halved fa-lg"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-bold text-gray-800">Auditoria & Segurança</h1>
+            <p class="text-xs text-gray-500 flex items-center gap-1">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Sistema Online
+            </p>
+        </div>
+    </div>
+    <div class="flex items-center gap-6">
+      <a href="perfil.html" class="text-right hidden md:block p-2 rounded-lg hover:bg-gray-100 transition" title="Ver meu perfil">
+          <p id="userName" class="text-sm font-bold text-gray-800"></p>
+          <p id="userRole" class="text-xs text-red-600 font-medium bg-red-50 px-2 rounded-full"></p>
+      </a>
+
+      <button onclick="toggleTheme()" class="text-gray-400 hover:text-blue-600 transition" title="Mudar tema">
+          <i class="fa-solid fa-sun fa-xl" id="theme-icon"></i>
+      </button>
+
+      <button onclick="logout()" class="text-gray-400 hover:text-red-500 transition" title="Sair"><i class="fa-solid fa-right-from-bracket fa-xl"></i></button>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto p-8">
+    
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" id="logsSection">
+      <div class="px-6 py-4 border-b border-gray-100 bg-slate-50 flex justify-between items-center">
+          <h2 class="text-lg font-bold text-gray-700"><i class="fa-solid fa-list-ul mr-2"></i> Eventos do Sistema</h2>
+          <span class="text-sm text-gray-500 font-bold">
+            Total de Eventos: <span id="logCount" class="text-blue-600">0</span>
+          </span>
+      </div>
+      <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead class="text-gray-500 uppercase text-xs bg-gray-50 border-b">
+              <tr>
+                <th class="p-3">ID</th>
+                <th class="p-3">Origem</th>
+                <th class="p-3">Ação</th>
+                <th class="p-3">Data e Hora</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaLogs"></tbody>
+          </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

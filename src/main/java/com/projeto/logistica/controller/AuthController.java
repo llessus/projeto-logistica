@@ -21,8 +21,7 @@ public class AuthController {
         String email = dadosLogin.get("email");
         String senha = dadosLogin.get("senha");
 
-        // 1. Busca o usuário no banco
-        // (Isso vai funcionar agora que você arrumou o Repository)
+        
         Usuario usuarioBanco = usuarioRepository.findByEmail(email);
 
         // 2. Verifica se existe e se a senha bate
@@ -32,8 +31,7 @@ public class AuthController {
             resposta.put("email", usuarioBanco.getEmail());
             resposta.put("nome", usuarioBanco.getNome());
             
-            // --- AQUI ESTAVA O ERRO, AGORA ESTÁ CORRIGIDO ---
-            // Usamos getIdGrupo() porque foi assim que definimos no Usuario.java
+        
             if (usuarioBanco.getIdGrupo() != null && usuarioBanco.getIdGrupo() == 1) {
                 resposta.put("role", "ROLE_ADMIN");
             } else {
